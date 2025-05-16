@@ -4,10 +4,24 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+
+// Importa TODAS tus entidades explícitamente
+import { User } from './auth/entities/user.entity';
+import { Category } from './categories/entities/category.entity';
+import { Design } from './designs/entities/design.entity';
+import { Product } from './products/entities/product.entity';
+import { ProductVariant } from './products/entities/product-variant.entity';
+import { Color } from './colors/entities/color.entity';
+// Importa otras entidades aquí a medida que las crees
+
+// Importa tus módulos de funcionalidad (descomenta los que necesites)
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
 import { DesignsModule } from './designs/designs.module';
 import { FilesModule } from './common/files/files.module';
+import { ProductsModule } from './products/products.module';
+import { ColorsModule } from './colors/colors.module';
+
 
 @Module({
   imports: [
@@ -19,55 +33,50 @@ import { FilesModule } from './common/files/files.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
+        const dbType = configService.get<string>('DB_TYPE') as any;
         const dbHost = configService.get<string>('DB_HOST');
-        const dbType = configService.get<string>('DB_TYPE') as any; // 'postgres'
+        const dbPortString = configService.get<string>('DB_PORT');
         const dbUsername = configService.get<string>('DB_USERNAME');
         const dbPassword = configService.get<string>('DB_PASSWORD');
         const dbDatabase = configService.get<string>('DB_DATABASE');
         const dbSynchronize = configService.get<string>('DB_SYNCHRONIZE') === 'true';
 
-        // ----- Manejo Correcto del Puerto -----
-        const dbPortString = configService.get<string>('DB_PORT');
-        let dbPort = 5432; // Valor por defecto
-
+        let dbPort = 5432;
         if (dbPortString) {
           const parsedPort = parseInt(dbPortString, 10);
-          if (!isNaN(parsedPort)) {
-            dbPort = parsedPort;
-          } else {
-            console.warn(
-              `Invalid DB_PORT value "${dbPortString}" in .env file. Using default port 5432.`,
-            );
-          }
+          dbPort = isNaN(parsedPort) ? 5432 : parsedPort;
+          if (isNaN(parsedPort)) console.warn(`Invalid DB_PORT: ${dbPortString}, using 5432`);
         } else {
-          console.warn(
-            `DB_PORT is not defined in .env file. Using default port 5432.`,
-          );
+          console.warn('DB_PORT not defined, using 5432');
         }
-        // ----- Fin Manejo Correcto del Puerto -----
 
-        // Verificar que las variables esenciales estén definidas
-        if (!dbHost || !dbType || !dbUsername || !dbPassword || !dbDatabase) {
-          throw new Error('One or more database environment variables are not defined. Please check your .env file.');
+        if (!dbType || !dbHost || !dbUsername || !dbPassword || !dbDatabase) {
+          const errMsg = 'Database configuration is incomplete in .env';
+          console.error(`ERROR: ${errMsg}`);
+          throw new Error(errMsg);
         }
 
         return {
           type: dbType,
           host: dbHost,
-          port: dbPort, // Usar el dbPort procesado y validado
+          port: dbPort,
           username: dbUsername,
-          password: dbPassword,
+          password: dbPassword, 
           database: dbDatabase,
-          entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+          entities: [User, Category, Design, Product, ProductVariant, Color /* , ...otras entidades */], // <--- CARGA MANUAL
           synchronize: dbSynchronize,
-          autoLoadEntities: true,
+          autoLoadEntities: false, // <--- PONER EN FALSE si cargas manualmente
+          logging: ['error', 'warn'], 
         };
       },
     }),
+    // Descomenta los módulos que estés listo para usar
     AuthModule,
-    CategoriesModule, // Añade AuthModule a los imports de AppModule
+    CategoriesModule,
     DesignsModule,
-    FilesModule,// ... otros módulos que vayas creando
+    FilesModule,
+    ProductsModule,
+    ColorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

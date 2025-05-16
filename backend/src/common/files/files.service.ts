@@ -12,12 +12,12 @@ export class FilesService {
   private readonly region: string;
 
   constructor(private readonly configService: ConfigService) {
-    const regionFromConfig = this.configService.get<string>('AWS_REGION');
-    const bucketNameFromConfig = this.configService.get<string>('AWS_S3_BUCKET_NAME');
-    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
+  const regionFromConfig = this.configService.get<string>('AWS_REGION');
+  const bucketNameFromConfig = this.configService.get<string>('AWS_S3_BUCKET_NAME');
+  const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
+  const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
 
-    if (!regionFromConfig || !bucketNameFromConfig || !accessKeyId || !secretAccessKey) {
+  if (!regionFromConfig || !bucketNameFromConfig || !accessKeyId || !secretAccessKey) {
       const missingVars = [
         !regionFromConfig && 'AWS_REGION',
         !bucketNameFromConfig && 'AWS_S3_BUCKET_NAME',

@@ -1,26 +1,40 @@
-@import "tailwindcss";
+/* frontend/src/app/globals.css */
 
+/* 
+  Importa las capas de Tailwind CSS v4.
+  Asegúrate de que tu postcss.config.js (o la configuración de PostCSS en Next.js)
+  esté procesando Tailwind CSS. Con Next.js, esto suele estar configurado por defecto
+  si instalaste Tailwind siguiendo sus guías.
+*/
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Tus variables CSS personalizadas y estilos globales base pueden ir después */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Light Mode Defaults */
+  --background: #FFFFFF; /* o tu brand-white si es diferente */
+  --foreground: #111827; /* Un gris oscuro, puedes usar tu brand-black */
+  
+  /* Define tus colores de marca aquí si quieres usarlos con var() en CSS */
+  /* Aunque tus clases de Tailwind como bg-brand-red ya usarán los valores de tailwind.config.ts */
+  --brand-red: #FF0000; /* TU ROJO */
+  --brand-black: #000000; /* TU NEGRO */
+  --brand-white: #FFFFFF; /* TU BLANCO */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Dark Mode Defaults */
+    --background: #0a0a0a; /* Un negro/gris muy oscuro */
+    --foreground: #ededed; /* Un blanco/gris claro */
+
+    /* Podrías redefinir --brand-red, etc., aquí si quieres que cambien en modo oscuro */
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* font-family: theme('fontFamily.sans'); */ /* Si usas fuentes de Tailwind */
 }

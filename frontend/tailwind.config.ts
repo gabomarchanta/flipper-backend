@@ -5,21 +5,16 @@ const config: Config = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}', // Corregido aquí
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}', // Asegúrate que esta línea esté si usas App Router
   ],
   theme: {
     extend: {
       colors: {
-        'brand-red': '#FF0000',     // Reemplaza con tu rojo exacto
-        'brand-red-dark': '#CC0000', // Reemplaza o ajusta
-        'brand-white': '#FFFFFF',    // Blanco puro
-        'brand-black': '#171717',    // Un negro/gris oscuro (puedes usar #000000 si prefieres negro puro)
-                                     // o el que tenías en --foreground
+        'brand-red': '#FF0000',        // TU ROJO EXACTO AQUÍ
+        'brand-red-dark': '#CC0000',   // TU ROJO OSCURO EXACTO AQUÍ
+        'brand-white': '#FFFFFF',      // TU BLANCO EXACTO AQUÍ (puede ser 'white' si es puro)
+        'brand-black': '#000000',      // TU NEGRO/GRIS OSCURO EXACTO AQUÍ (puede ser 'black' si es puro)
       },
-      // Si quieres usar una fuente específica globalmente a través de Tailwind:
-      // fontFamily: {
-      //   sans: ['Arial', 'Helvetica', 'sans-serif'], // O la que prefieras
-      // },
     },
   },
   plugins: [],
