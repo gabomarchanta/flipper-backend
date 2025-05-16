@@ -1,6 +1,6 @@
 // backend/src/designs/designs.controller.ts
 import {
-  Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, ParseUUIDPipe, UseGuards, HttpCode, HttpStatus,
+  Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, ParseUUIDPipe, UseGuards, HttpCode, HttpStatus, ParseFilePipe, BadRequestException
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express'; // Para manejar subida de archivos
 import { DesignsService } from './designs.service';
@@ -33,8 +33,24 @@ export class DesignsController {
   @HttpCode(HttpStatus.CREATED)
   create(
     @Body() createDesignDto: CreateDesignDto,
-    @UploadedFile() file: Express.Multer.File, // Archivo subido
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          // Puedes añadir validadores aquí si quieres, ej:
+          // new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
+          // new FileTypeValidator({ fileType: 'image/png' }), // Solo PNG
+        ],
+        fileIsRequired: true, // Asegura que el archivo sea obligatorio
+        exceptionFactory: (error) => { // Para personalizar el mensaje de error
+          console.error('Error de ParseFilePipe:', error)
+          return new BadRequestException(`Error con el archivo subido: ${error}`);
+        }
+      })
+    )
+    file: Express.Multer.File,
   ) {
+    console.log('Backend createDesignDto (con ParseFilePipe):', createDesignDto);
+    console.log('Backend file (con ParseFilePipe):', file); // Debería ser el objeto File si ParseFilePipe tiene éxito
     return this.designsService.create(createDesignDto, file);
   }
 

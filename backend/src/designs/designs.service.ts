@@ -20,6 +20,7 @@ export class DesignsService {
     file: Express.Multer.File, // El archivo subido
   ): Promise<Design> {
     if (!file) {
+      
       throw new InternalServerErrorException('No se proporcionó un archivo de diseño.');
     }
 

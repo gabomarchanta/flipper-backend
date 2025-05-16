@@ -7,6 +7,8 @@ import { ConfigService } from '@nestjs/config'; // <--- IMPORTANTE: Importar Con
 async function bootstrap() {
   const app = await NestFactory.create(AppModule); // Crear la instancia de la app PRIMERO
 
+  // logger: ['log', 'error', 'warn', 'debug', 'verbose'];
+
   // Ahora que 'app' existe, puedes obtener ConfigService de ella
   const configService = app.get(ConfigService); 
 
