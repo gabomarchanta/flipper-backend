@@ -1,40 +1,108 @@
 /* frontend/src/app/globals.css */
 
-/* 
-  Importa las capas de Tailwind CSS v4.
-  Asegúrate de que tu postcss.config.js (o la configuración de PostCSS en Next.js)
-  esté procesando Tailwind CSS. Con Next.js, esto suele estar configurado por defecto
-  si instalaste Tailwind siguiendo sus guías.
+/* 1. Importa Tailwind CSS (o usa las directivas @tailwind) */
+@import "tailwindcss";
+/* O, si prefieres la forma explícita:
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 */
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
 
-/* Tus variables CSS personalizadas y estilos globales base pueden ir después */
+/* 2. Definición de Variables CSS Globales con Hexadecimales */
 :root {
-  /* Light Mode Defaults */
-  --background: #FFFFFF; /* o tu brand-white si es diferente */
-  --foreground: #111827; /* Un gris oscuro, puedes usar tu brand-black */
-  
-  /* Define tus colores de marca aquí si quieres usarlos con var() en CSS */
-  /* Aunque tus clases de Tailwind como bg-brand-red ya usarán los valores de tailwind.config.ts */
-  --brand-red: #FF0000; /* TU ROJO */
-  --brand-black: #000000; /* TU NEGRO */
-  --brand-white: #FFFFFF; /* TU BLANCO */
+  /* Colores Base para Modo Claro (Default) */
+  --color-background: #FFFFFF; /* Blanco */
+  --color-foreground: #171717; /* Negro/Gris muy oscuro */
+
+  /* Colores de Marca */
+  --color-brand-red: #FF0000;
+  --color-brand-red-dark: #CC0000;
+  --color-brand-black: #000000;
+  --color-brand-white: #FFFFFF;
+
+  /* Colores Semánticos (puedes basarlos en los de marca) */
+  --color-primary: var(--color-brand-red);
+  --color-primary-hover: var(--color-brand-red-dark);
+  --color-text-on-primary: var(--color-brand-white);
+
+  --color-surface: var(--color-background); /* Para cards, modales */
+  --color-border: rgba(23, 23, 23, 0.1); /* Borde sutil basado en foreground claro */
+
+  /* Fuentes */
+  --font-sans: 'Arial', 'Helvetica', sans-serif;
 }
 
+/* 3. (Opcional) Definición de Variables para Modo Oscuro */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Dark Mode Defaults */
-    --background: #0a0a0a; /* Un negro/gris muy oscuro */
-    --foreground: #ededed; /* Un blanco/gris claro */
+    /* Colores Base para Modo Oscuro */
+    --color-background: #171717; /* Negro/Gris muy oscuro */
+    --color-foreground: #ededed; /* Blanco/Gris claro */
 
-    /* Podrías redefinir --brand-red, etc., aquí si quieres que cambien en modo oscuro */
+    /* Los colores de marca pueden o no cambiar, ejemplo: */
+    /* --color-brand-red: #FF3333; (un rojo un poco más brillante) */
+    
+    /* Actualizar colores semánticos si es necesario */
+    --color-text-on-primary: var(--color-brand-black); /* Si el primario se vuelve más claro */
+    --color-surface: #262626; /* Un gris un poco más claro que el fondo oscuro */
+    --color-border: rgba(237, 237, 237, 0.1); /* Borde sutil basado en foreground oscuro */
   }
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  /* font-family: theme('fontFamily.sans'); */ /* Si usas fuentes de Tailwind */
+/* 4. Estilos Base para el Body y HTML */
+html {
+  color-scheme: light dark;
 }
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 5. (Opcional) Estilos Base para otros elementos HTML */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* 6. Clases de Utilidad Personalizadas para tus Colores de Marca */
+/* Si NO usas tailwind.config.ts para definir 'brand-red', etc.,
+   y quieres clases reutilizables, puedes crearlas aquí. */
+
+.bg-brand-red {
+  background-color: var(--color-brand-red);
+}
+.text-brand-red {
+  color: var(--color-brand-red);
+}
+.hover\:bg-brand-red-dark:hover { /* Simula la utilidad hover de Tailwind */
+  background-color: var(--color-brand-red-dark);
+}
+.hover\:text-brand-red:hover {
+    color: var(--color-brand-red);
+}
+
+
+.bg-brand-black {
+  background-color: var(--color-brand-black);
+}
+.text-brand-black {
+  color: var(--color-brand-black);
+}
+
+.bg-brand-white {
+  background-color: var(--color-brand-white);
+}
+.text-brand-white {
+  color: var(--color-brand-white);
+}
+/* ... y así para otras combinaciones que necesites ... */

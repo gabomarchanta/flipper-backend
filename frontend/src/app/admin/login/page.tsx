@@ -1,9 +1,9 @@
 // frontend/src/app/admin/login/page.tsx
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react'; // <--- AÑADE useEffect
 import { useAuth } from '../../../contexts/AuthContext';
-import { loginAdmin } from '../../../services/apiService'; // Importa tu función de login
+import { loginAdmin } from '../../../services/apiService';
 import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
@@ -11,44 +11,61 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { login: contextLogin, isAuthenticated } = useAuth(); // Renombra login para evitar conflicto
+  const { login: contextLogin, isAuthenticated, isLoading: authIsLoading } = useAuth(); // Obtén isLoading del contexto también
   const router = useRouter();
 
-  // Si ya está autenticado, redirigir al dashboard
-  if (typeof window !== 'undefined' && isAuthenticated) {
-    router.replace('/admin/dashboard'); // O la página principal del admin
-    return null; // O un loader
-  }
-  
+  // Usar useEffect para manejar la redirección si ya está autenticado
+  useEffect(() => {
+    // Solo redirigir si la autenticación NO está cargando y el usuario SÍ está autenticado
+    if (!authIsLoading && isAuthenticated) {
+      router.replace('/admin/dashboard');
+    }
+  }, [isAuthenticated, authIsLoading, router]); // Dependencias del efecto
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     try {
       const data = await loginAdmin({ email, password });
-      // data = { accessToken: string, user: { id, email, role } }
       if (data.accessToken && data.user) {
         if (data.user.role !== 'admin') {
             setError('Acceso denegado. No eres administrador.');
             setIsLoading(false);
             return;
         }
-        contextLogin(data.accessToken, data.user); // Llama a la función login del AuthContext
-        // La redirección se maneja dentro de contextLogin
+        contextLogin(data.accessToken, data.user);
+        // La redirección ahora se maneja en el AuthContext o en el useEffect de arriba después de que isAuthenticated cambie
       } else {
         setError('Respuesta inválida del servidor.');
       }
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
-      console.error(err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
+        console.error(err);
+      } else {
+        setError('Error al iniciar sesión. Verifica tus credenciales.');
+        console.error(err);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Si la autenticación aún está cargando, o si ya está autenticado y la redirección está en proceso,
+  // podrías mostrar un loader o null para evitar renderizar el formulario innecesariamente.
+  if (authIsLoading || (!authIsLoading && isAuthenticated)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p>Cargando...</p> {/* O un spinner más elegante */}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="p-8 bg-brand-white shadow-xl rounded-lg w-full max-w-md">
+        {/* ... resto del formulario ... */}
         <h1 className="text-3xl font-bold text-center text-brand-red mb-8">
           Admin Login
         </h1>
