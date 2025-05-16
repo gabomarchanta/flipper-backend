@@ -184,13 +184,15 @@ for (const [key, value] of formData.entries()) {
           <div key={design.id} className="bg-white rounded-lg shadow-md overflow-hidden">
             {design.imageUrl && (
               <div className="w-full h-48 relative bg-gray-100"> {/* Contenedor con aspect ratio o altura fija */}
-                <Image
-                  src={design.imageUrl}
-                  alt={design.name}
-                  fill // o width/height si conoces las dimensiones y quieres optimización
-                  style={{ objectFit: 'contain' }} // o "cover" según prefieras
-                  priority={false} // Fondo mientras carga
-                />
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <Image
+                    src={design.imageUrl}
+                    alt={design.name}
+                    fill // o width/height si conoces las dimensiones y quieres optimización
+                    style={{ objectFit: 'contain' }} // o "cover" según prefieras
+                    priority={false} // Fondo mientras carga
+                  />
+                </div>
               </div>
             )}
             <div className="p-4">
@@ -248,7 +250,9 @@ for (const [key, value] of formData.entries()) {
                 />
                 {previewImage && (
                   <div className="mt-4 border rounded-md p-2 inline-block relative w-24 h-24">
-                    <Image src={previewImage} alt="Vista previa" fill style={{ objectFit: 'contain' }} />
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      <Image src={previewImage} alt="Vista previa" fill style={{ objectFit: 'contain' }} />
+                    </div>
                   </div>
                 )}
               </div>

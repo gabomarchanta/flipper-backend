@@ -1,7 +1,7 @@
 // backend/src/designs/designs.controller.ts
 import {
-  Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, ParseUUIDPipe, UseGuards, HttpCode, HttpStatus, ParseFilePipe, BadRequestException
-} from '@nestjs/common';
+  Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile,
+  ParseUUIDPipe, UseGuards, HttpCode, HttpStatus, ParseFilePipe, BadRequestException} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express'; // Para manejar subida de archivos
 import { DesignsService } from './designs.service';
 import { CreateDesignDto } from './dto/create-design.dto';
@@ -70,14 +70,14 @@ export class DesignsController {
 
   @Patch(':id')
   @Roles(Role.Admin)
-  // Si permites actualizar imagen, necesitarías @UseInterceptors(FileInterceptor('file')) aquí también
+  @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDesignDto: UpdateDesignDto,
-    // @UploadedFile() file?: Express.Multer.File, // Si permites actualizar archivo
+    @UploadedFile() file?: Express.Multer.File, // Si permites actualizar archivo
   ) {
-    return this.designsService.update(id, updateDesignDto /*, file */);
+    return this.designsService.update(id, updateDesignDto , file);
   }
 
   @Delete(':id')
