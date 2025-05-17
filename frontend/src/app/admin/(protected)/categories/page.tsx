@@ -1,54 +1,54 @@
 // frontend/src/app/admin/(protected)/categories/page.tsx
 'use client';
 
-import React, { useState, useEffect, FormEvent } from 'react';
-// Asumiremos que crearás estas funciones en apiService.ts
+import React, { useState, useEffect, FormEvent, useCallback } from 'react';
+import { useRouter } from 'next/navigation'; // Para router.refresh()
+import { useAuth } from '../../../../contexts/AuthContext'; // Ajusta la ruta si es diferente
+
+// Importa las funciones API específicas para categorías desde su nuevo archivo
 import {
   getCategories,
   createCategory,
   updateCategory,
   deleteCategory,
-  Category, // Importa el tipo Category si lo defines en apiService o en un archivo de tipos
-} from '../../../../services/apiService'; // Ajusta la ruta a tu apiService
-import { useAuth } from '../../../../contexts/AuthContext'; // Ajusta la ruta
+  // getCategoryById, // Descomenta si la necesitas para cargar datos en el modal de edición
+} from '../../../../services/categories.api'; // <--- RUTA ACTUALIZADA
 
-// Define el tipo Category aquí o impórtalo si lo tienes centralizado
-// export interface Category {
-//   id: string;
-//   name: string;
-//   description?: string;
-//   slug?: string;
-// }
+// Importa los TIPOS desde tu archivo global de tipos
+import type { Category, CreateCategoryPayload, UpdateCategoryPayload } from '../../../../types'; // <--- RUTA AL ARCHIVO DE TIPOS
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para el formulario de crear/editar
+  // Estados para el formulario de crear/editar modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState<Category | null>(null); // Para editar
+  const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [slug, setSlug] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { token } = useAuth(); // Para verificar si el token está disponible antes de las llamadas
+  const { token } = useAuth();
+  const router = useRouter();
 
-  const fetchCategories = React.useCallback(async () => {
-    if (!token) return; // No hacer fetch si no hay token (aunque el layout debería proteger)
+  const fetchCategories = useCallback(async () => {
+    if (!token) {
+      setError("No autenticado. Por favor, inicia sesión.");
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getCategories(); // Asume que getCategories ya usa el token del interceptor
+      const data = await getCategories();
       setCategories(data);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || 'Error al cargar categorías.');
-      } else {
-        setError('Error al cargar categorías.');
-      }
+      const message = err instanceof Error ? err.message : 'Error al cargar categorías.';
+      setError(message);
+      console.error("Error fetching categories:", err);
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +56,8 @@ export default function AdminCategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]); // Vuelve a hacer fetch si el token cambia (ej. después del login)
-  
+  }, [fetchCategories]);
+
   const openModalForCreate = () => {
     setCurrentCategory(null);
     setName('');
@@ -78,35 +78,44 @@ export default function AdminCategoriesPage() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setCurrentCategory(null); // Limpiar
+    // Resetear estados al cerrar
+    setCurrentCategory(null);
+    setName('');
+    setDescription('');
+    setSlug('');
+    setFormError(null);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token) {
-        setFormError("No autenticado.");
-        return;
+      setFormError("No autenticado.");
+      return;
     }
     setIsSubmitting(true);
     setFormError(null);
-    const categoryData = { name, description, slug: slug || undefined }; // Enviar slug solo si tiene valor
+
+    // Usar los tipos importados para el payload
+    const payload: CreateCategoryPayload | UpdateCategoryPayload = {
+      name,
+      description: description || undefined,
+      slug: slug || undefined,
+    };
 
     try {
       if (currentCategory) {
-        // Editar
-        await updateCategory(currentCategory.id, categoryData);
+        await updateCategory(currentCategory.id, payload as UpdateCategoryPayload); // Cast a UpdateCategoryPayload
+        alert('Categoría actualizada con éxito!');
       } else {
-        // Crear
-        await createCategory(categoryData);
+        await createCategory(payload as CreateCategoryPayload); // Cast a CreateCategoryPayload
+        alert('Categoría creada con éxito!');
       }
-      fetchCategories(); // Recargar la lista
+      router.refresh(); // Revalida los datos del servidor para la ruta actual
+      await fetchCategories();
       closeModal();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setFormError(err.message || 'Error al guardar la categoría.');
-      } else {
-        setFormError('Error al guardar la categoría.');
-      }
+    } catch (err: any) {
+      setFormError(err.response?.data?.message || err.message || 'Error al guardar la categoría.');
+      console.error("Error saving category:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -115,21 +124,25 @@ export default function AdminCategoriesPage() {
   const handleDelete = async (id: string) => {
     if (!token) return;
     if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría?')) {
+      setIsLoading(true); // Considera un estado de carga específico para la eliminación
       try {
         await deleteCategory(id);
-        fetchCategories(); // Recargar la lista
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message || 'Error al eliminar la categoría.');
-        } else {
-          setError('Error al eliminar la categoría.');
-        }
+        alert('Categoría eliminada con éxito');
+        router.refresh();
+        await fetchCategories();
+      } catch (err: any) {
+        setError(err.response?.data?.message || err.message || 'Error al eliminar la categoría.');
+        console.error("Error deleting category:", err);
+      } finally {
+        // Si usaste un estado de carga específico para delete, ponlo en false aquí
+        // setIsLoading(false); // Solo si isLoading se usa para esto específicamente
+        // Si no, fetchCategories se llamará por router.refresh y manejará isLoading
       }
     }
   };
 
-  if (isLoading) return <p className="p-8">Cargando categorías...</p>;
-  if (error) return <p className="p-8 text-red-500">Error: {error}</p>;
+  if (isLoading && categories.length === 0) return <p className="p-8 text-center">Cargando categorías...</p>;
+  if (error && categories.length === 0) return <p className="p-8 text-red-500 text-center">Error: {error}</p>;
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -137,48 +150,48 @@ export default function AdminCategoriesPage() {
         <h1 className="text-3xl font-bold text-brand-black">Gestionar Categorías</h1>
         <button
           onClick={openModalForCreate}
-          className="bg-brand-red text-brand-white py-2 px-5 rounded hover:bg-brand-red-dark transition-colors font-semibold"
+          className="bg-brand-red text-brand-white py-2 px-5 rounded-md hover:bg-brand-red-dark transition-colors font-semibold"
         >
           Nueva Categoría
         </button>
       </div>
 
-      {/* Lista de Categorías */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+      {isLoading && categories.length > 0 && <p className="text-center py-4">Actualizando lista...</p>}
+      <div className="bg-white shadow-lg rounded-lg overflow-x-auto"> {/* overflow-x-auto para tablas anchas */}
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {categories.length === 0 && (
+            {!isLoading && categories.length === 0 && !error && (
               <tr>
                 <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                  No hay categorías creadas.
+                  No hay categorías creadas. ¡Añade la primera!
                 </td>
               </tr>
             )}
             {categories.map((category) => (
-              <tr key={category.id}>
+              <tr key={category.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.slug}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
-                  {category.description || '-'}
+                <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={category.description}>
+                  {category.description || <span className="italic text-gray-400">Sin descripción</span>}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                   <button
                     onClick={() => openModalForEdit(category)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
+                    className="text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(category.id)}
-                    className="text-red-600 hover:text-red-900"
+                    className="text-red-600 hover:text-red-800 transition-colors"
                   >
                     Eliminar
                   </button>
@@ -191,58 +204,51 @@ export default function AdminCategoriesPage() {
 
       {/* Modal para Crear/Editar Categoría */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
-          <div className="relative bg-white p-8 rounded-lg shadow-xl w-full max-w-lg mx-auto">
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 transition-opacity duration-300 ease-in-out">
+          <div className="relative bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-lg mx-auto transform transition-all duration-300 ease-in-out scale-100">
+            <button onClick={closeModal} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
             <h2 className="text-2xl font-bold text-brand-black mb-6">
               {currentCategory ? 'Editar Categoría' : 'Nueva Categoría'}
             </h2>
-            <form onSubmit={handleSubmit}>
-              {formError && <p className="mb-4 text-sm text-red-500 bg-red-100 p-2 rounded">{formError}</p>}
-              <div className="mb-4">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {formError && <p className="mb-3 text-sm text-red-600 bg-red-100 p-3 rounded-md">{formError}</p>}
+              <div>
+                <label htmlFor="cat-name" className="block text-sm font-medium text-gray-700 mb-1">Nombre <span className="text-red-500">*</span></label>
                 <input
                   type="text"
-                  id="name"
+                  id="cat-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-brand-red focus:border-brand-red sm:text-sm"
                 />
               </div>
-              <div className="mb-4">
-                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-1">Slug (Opcional)</label>
+              <div>
+                <label htmlFor="cat-slug" className="block text-sm font-medium text-gray-700 mb-1">Slug (Opcional)</label>
                 <input
                   type="text"
-                  id="slug"
+                  id="cat-slug"
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  placeholder="ej: remeras-verano (se genera si se deja vacío)"
+                  placeholder="ej: remeras-de-verano (se genera si se deja vacío)"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-brand-red focus:border-brand-red sm:text-sm"
                 />
               </div>
-              <div className="mb-6">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Descripción (Opcional)</label>
+              <div>
+                <label htmlFor="cat-desc" className="block text-sm font-medium text-gray-700 mb-1">Descripción (Opcional)</label>
                 <textarea
-                  id="description"
+                  id="cat-desc"
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-brand-red focus:border-brand-red sm:text-sm"
                 />
               </div>
-              <div className="flex items-center justify-end space-x-4">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 transition-colors font-medium"
-                >
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t mt-6">
+                <button type="button" onClick={closeModal} disabled={isSubmitting} className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors font-medium disabled:opacity-70">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-brand-red text-brand-white py-2 px-5 rounded hover:bg-brand-red-dark transition-colors font-semibold disabled:opacity-50"
-                >
+                <button type="submit" disabled={isSubmitting} className="bg-brand-red text-brand-white py-2 px-5 rounded-md hover:bg-brand-red-dark transition-colors font-semibold disabled:opacity-70">
                   {isSubmitting ? (currentCategory ? 'Guardando...' : 'Creando...') : (currentCategory ? 'Guardar Cambios' : 'Crear Categoría')}
                 </button>
               </div>

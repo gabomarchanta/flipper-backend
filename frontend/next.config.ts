@@ -1,16 +1,30 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true, // O tu configuración existente
+  reactStrictMode: true, // O la configuración que ya tengas
+  // ... otras configuraciones que puedas tener ...
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'flipper-remeras.s3.us-east-2.amazonaws.com', // Tu hostname de S3
-        // port: '', // Usualmente no se necesita para S3
-        // pathname: '/my-bucket/**', // Opcional: si quieres restringir a una ruta específica dentro del bucket
+        hostname: 'via.placeholder.com',
+        port: '', // Dejar vacío si es el puerto estándar (80 o 443)
+        pathname: '/**', // Permite cualquier ruta dentro de este hostname
       },
-      // Puedes añadir más objetos aquí para otros dominios de imágenes
+      {
+        protocol: 'https',
+        // Ejemplo del hostname de tu bucket S3 (ajusta según tu bucket y región)
+        // Si tu URL es https://flipper-remeras.s3.us-east-2.amazonaws.com/...
+        hostname: 'flipper-remeras.s3.us-east-2.amazonaws.com', // <--- CAMBIA ESTO POR TU HOSTNAME DE S3
+        port: '',
+        pathname: '/**',
+      },
+      // Puedes añadir más patrones aquí para otros dominios si los necesitas
     ],
+  },
+  experimental: {
+    // Tus configuraciones experimentales si las tienes, como:
+    // webpackBuildWorker: true,
+    // lightningCss: false,
   },
 };
 

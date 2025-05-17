@@ -5,57 +5,59 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const apiClient = axios.create({
   baseURL: API_URL,
-  // headers: {
-  //  'Content-Type': 'application/json',
-  //},
+  // No establezcas Content-Type globalmente aquí si vas a enviar FormData y JSON
 });
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('adminToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// --- Tipos --- (Puedes moverlos a un archivo types.ts)
+// --- Tipos ---
 export interface Category {
   id: string;
   name: string;
   description?: string;
   slug?: string;
-  // Añade otras propiedades si tu entidad las tiene, como createdAt, updatedAt
+  // createdAt?: string | Date;
+  // updatedAt?: string | Date;
 }
 
-interface CreateCategoryPayload { // DTO para crear
+interface CreateCategoryPayload {
   name: string;
   description?: string;
   slug?: string;
 }
 
-interface UpdateCategoryPayload { // DTO para actualizar
+interface UpdateCategoryPayload {
   name?: string;
   description?: string;
   slug?: string;
 }
 
-export interface Design { // Nuevo tipo para Design
+export interface Design {
   id: string;
   name: string;
   imageUrl: string;
   description?: string;
-  imageKey?: string; // Útil si quieres implementar borrado de S3 desde el frontend/backend
+  imageKey?: string;
+  // createdAt?: string | Date;
+  // updatedAt?: string | Date;
 }
 
-// Para UpdateDesignPayload, podrías crear uno similar o reutilizar parte de CreateDesignPayload
-// si la actualización de imagen se maneja por separado o no se implementa de inmediato.
-interface UpdateDesignPayload {
-    name?: string;
-    description?: string;
-}
+// Ya no necesitamos UpdateDesignPayload si siempre enviamos FormData para la actualización de Design
+// interface UpdateDesignPayload {
+//     name?: string;
+//     description?: string;
+// }
 
 // --- Auth ---
 export const loginAdmin = async (credentials: { email: string; password: string }) => {
@@ -66,103 +68,117 @@ export const loginAdmin = async (credentials: { email: string; password: string 
     if (axios.isAxiosError(error)) {
       throw error.response?.data || new Error(error.message || 'Error en el login');
     }
-    throw new Error('Error en el login');
+    throw new Error('Error desconocido en el login');
   }
 };
 
 // --- Categories ---
 export const getCategories = async (): Promise<Category[]> => {
   try {
-    const response = await apiClient.get('/categories');
+    const response = await apiClient.get<Category[]>('/categories');
     return response.data;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       throw error.response?.data || new Error(error.message || 'Error al obtener categorías');
     }
-    throw new Error('Error al obtener categorías');
+    throw new Error('Error desconocido al obtener categorías');
   }
 };
 
 export const createCategory = async (data: CreateCategoryPayload): Promise<Category> => {
   try {
-    const response = await apiClient.post('/categories', data);
+    const response = await apiClient.post<Category>('/categories', data);
     return response.data;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       throw error.response?.data || new Error(error.message || 'Error al crear categoría');
     }
-    throw new Error('Error al crear categoría');
+    throw new Error('Error desconocido al crear categoría');
   }
 };
 
 export const updateCategory = async (id: string, data: UpdateCategoryPayload): Promise<Category> => {
   try {
-    const response = await apiClient.patch(`/categories/${id}`, data);
+    const response = await apiClient.patch<Category>(`/categories/${id}`, data);
     return response.data;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       throw error.response?.data || new Error(error.message || 'Error al actualizar categoría');
     }
-    throw new Error('Error al actualizar categoría');
+    throw new Error('Error desconocido al actualizar categoría');
   }
 };
 
-export const deleteCategory = async (id: string): Promise<{ message: string } | void> => { // El backend puede devolver void o un mensaje
+export const deleteCategory = async (id: string): Promise<{ message: string } | void> => {
   try {
     const response = await apiClient.delete(`/categories/${id}`);
-    return response.data; // O simplemente no devolver nada si el backend da 204
+    return response.data;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       throw error.response?.data || new Error(error.message || 'Error al eliminar categoría');
     }
-    throw new Error('Error al eliminar categoría');
+    throw new Error('Error desconocido al eliminar categoría');
   }
 };
 
 // --- Designs ---
 export const getDesigns = async (): Promise<Design[]> => {
   try {
-    const response = await apiClient.get('/designs');
+    const response = await apiClient.get<Design[]>('/designs');
     return response.data;
   } catch (error: unknown) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw error.response.data || new Error(error.message || 'Error al obtener diseños');
+    const defaultMessage = 'Error al obtener diseños.';
+    if (axios.isAxiosError(error)) {
+      throw error.response?.data || new Error(error.message || defaultMessage);
     }
-    throw new Error((error instanceof Error ? error.message : String(error)) || 'Error al obtener diseños');
+    throw new Error((error instanceof Error ? error.message : String(error)) || defaultMessage);
   }
 };
 
-export const createDesign = async (formData: FormData): Promise<Design> => {
-  // Cuando envías FormData, axios y el navegador configuran el Content-Type automáticamente.
-  // No necesitas 'Content-Type': 'application/json' para esta petición específica.
-  // El interceptor aún añadirá el token de autorización si está presente.
+// Función para obtener un diseño por ID (la necesitarás para la página de edición si cargas datos iniciales)
+export const getDesignById = async (id: string): Promise<Design> => {
   try {
-    const response = await apiClient.post('/designs', formData, {
-      headers: {
-        // Deja que Axios/navegador establezcan el Content-Type para FormData
-        // 'Content-Type': 'multipart/form-data', // No es necesario explícitamente con Axios y FormData
-      },
+    const response = await apiClient.get<Design>(`/designs/${id}`);
+    return response.data;
+  } catch (error: unknown) {
+    const defaultMessage = `Error al obtener el diseño ${id}.`;
+    if (axios.isAxiosError(error)) {
+      throw error.response?.data || new Error(error.message || defaultMessage);
+    }
+    throw new Error((error instanceof Error ? error.message : String(error)) || defaultMessage);
+  }
+};
+
+
+export const createDesign = async (formData: FormData): Promise<Design> => {
+  try {
+    const response = await apiClient.post<Design>('/designs', formData, {
+      // Axios establece Content-Type a multipart/form-data automáticamente para FormData
     });
     return response.data;
   } catch (error: unknown) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw error.response.data || new Error(error.message || 'Error al crear diseño');
+    const defaultMessage = 'Error al crear diseño.';
+    if (axios.isAxiosError(error)) {
+      throw error.response?.data || new Error(error.message || defaultMessage);
     }
-    throw new Error((error instanceof Error ? error.message : String(error)) || 'Error al crear diseño');
+    throw new Error((error instanceof Error ? error.message : String(error)) || defaultMessage);
   }
 };
 
-export const updateDesign = async (id: string, data: UpdateDesignPayload /*, file?: File */): Promise<Design> => {
-  // La actualización con archivo es más compleja, por ahora solo datos de texto
+// ----- ESTA ES LA FUNCIÓN CLAVE A MODIFICAR -----
+export const updateDesign = async (id: string, data: FormData): Promise<Design> => {
+  // Ahora 'data' es de tipo FormData
   try {
-    // Si fueras a enviar un archivo también, necesitarías FormData aquí también
-    const response = await apiClient.patch(`/designs/${id}`, data);
+    const response = await apiClient.patch<Design>(`/designs/${id}`, data, {
+      // Axios establece Content-Type a multipart/form-data automáticamente para FormData
+    });
     return response.data;
   } catch (error: unknown) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw error.response.data || new Error(error.message || 'Error al actualizar diseño');
+    const defaultMessage = `Error al actualizar el diseño ${id}.`;
+    if (axios.isAxiosError(error)) {
+      throw error.response?.data || new Error(error.message || defaultMessage);
     }
-    throw new Error((error instanceof Error ? error.message : String(error)) || 'Error al actualizar diseño');
+    throw new Error((error instanceof Error ? error.message : String(error)) || defaultMessage);
   }
 };
 
@@ -171,10 +187,11 @@ export const deleteDesign = async (id: string): Promise<{ message: string } | vo
     const response = await apiClient.delete(`/designs/${id}`);
     return response.data;
   } catch (error: unknown) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw error.response.data || new Error(error.message || 'Error al eliminar diseño');
+    const defaultMessage = `Error al eliminar el diseño ${id}.`;
+    if (axios.isAxiosError(error)) {
+      throw error.response?.data || new Error(error.message || defaultMessage);
     }
-    throw new Error((error instanceof Error ? error.message : String(error)) || 'Error al eliminar diseño');
+    throw new Error((error instanceof Error ? error.message : String(error)) || defaultMessage);
   }
 };
 
